@@ -1,427 +1,258 @@
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sol Garanza — Городские Кланы</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Telegram Game Map</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body { background: #0b0c10; color: #fff; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
-
-        /* Шапка игры */
-        #header {
-            height: 60px; background: #1f2833; display: flex; justify-content: space-between;
-            align-items: center; padding: 0 15px; border-bottom: 2px solid #45a29e;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0d1117; font-family: sans-serif; }
+        canvas { display: block; touch-action: none; }
+        
+        /* Плашка с информацией сверху */
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(22, 27, 34, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: white;
+            pointer-events: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            text-align: center;
         }
-        .user-info { font-size: 14px; font-weight: bold; color: #66fcf1; }
-        .user-info #player-name { font-size: 16px; margin-bottom: 2px; }
-        .user-info #player-gang { font-size: 11px; color: #c5c6c7; }
-
-        .stats { display: flex; gap: 15px; font-size: 13px; }
-        .stat-item { background: #0b0c10; padding: 5px 10px; border-radius: 5px; border: 1px solid #45a29e; }
-
-        /* Главный экран и вкладки */
-        #main-container { height: calc(100vh - 120px); position: relative; overflow: hidden; }
-        .tab-content { width: 100%; height: 100%; display: none; }
-        .tab-content.active { display: block; }
-
-        /* Нижнее меню навигации */
-        #navbar {
-            height: 60px; background: #1f2833; display: flex; justify-content: space-around;
-            align-items: center; border-top: 2px solid #45a29e;
-        }
-        .nav-btn {
-            background: none; border: none; color: #c5c6c7; font-size: 11px;
-            display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
-        }
-        .nav-btn.active { color: #66fcf1; font-weight: bold; }
-        .nav-btn icon { font-size: 18px; }
-
-        /* Вкладка: Карта Города (Canvas) */
-        #map-canvas { width: 100%; height: 100%; background: #121212; display: block; }
-        #location-modal {
-            position: absolute; bottom: 10px; left: 5%; width: 90%; background: rgba(31, 40, 51, 0.95);
-            border: 2px solid #66fcf1; border-radius: 10px; padding: 15px; display: none;
-            box-shadow: 0 0 15px rgba(102, 252, 241, 0.3); z-index: 100;
-        }
-        #location-modal h3 { color: #66fcf1; margin-bottom: 5px; }
-        #location-modal p { font-size: 12px; color: #c5c6c7; margin-bottom: 10px; }
-        .action-btn {
-            background: #66fcf1; color: #0b0c10; border: none; padding: 8px 15px;
-            font-weight: bold; border-radius: 5px; width: 100%; cursor: pointer;
-        }
-
-        /* Вкладка: Кланы (Банды) */
-        #tab-clans { padding: 15px; overflow-y: auto; }
-        .clan-section { background: #1f2833; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #45a29e; }
-        .clan-section h3 { color: #66fcf1; margin-bottom: 10px; }
-        .clan-input {
-            width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px;
-            border: 1px solid #45a29e; background: #0b0c10; color: #fff;
-        }
-        .clan-btn {
-            background: #66fcf1; color: #0b0c10; border: none; padding: 10px;
-            font-weight: bold; border-radius: 5px; width: 100%; cursor: pointer;
-            margin-top: 5px;
-        }
-        .clan-list { list-style: none; padding: 0; }
-        .clan-list li {
-            background: #0b0c10; padding: 10px; border-radius: 5px; margin-bottom: 5px;
-            display: flex; justify-content: space-between; align-items: center; border: 1px solid #45a29e;
-        }
-        .clan-list li span { font-size: 13px; }
-        .clan-list li button {
-            background: #45a29e; color: #0b0c10; border: none; padding: 5px 10px;
-            border-radius: 3px; font-size: 11px; cursor: pointer;
-        }
+        #district-name { font-weight: bold; color: #58a6ff; }
     </style>
 </head>
 <body>
 
-    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
-    <div id="header">
-        <div class="user-info">
-            <div id="player-name">Игрок</div>
-            <div id="player-gang">Банда: Нет</div>
-        </div>
-        <div class="stats">
-            <div class="stat-item">💵 $<span id="player-money">100,000</span></div>
-            <div class="stat-item">⚡ <span id="player-power">50</span></div>
-        </div>
+    <div id="ui">
+        Район: <span id="district-name">Выберите область</span>
     </div>
 
-    <!-- ОСНОВНОЙ КОНТЕНТ (ВКЛАДКИ) -->
-    <div id="main-container">
-        
-        <!-- ВКЛАДКА 1: КАРТА ГОРОДА -->
-        <div id="tab-map" class="tab-content active">
-            <canvas id="map-canvas"></canvas>
-            
-            <!-- Модальное окно при клике на объект карты -->
-            <div id="location-modal">
-                <h3 id="loc-title">Название локации</h3>
-                <p id="loc-desc">Описание локации...</p>
-                <button class="action-btn" onclick="interactLocation()">Войти / Захватить</button>
-            </div>
-        </div>
+    <canvas id="mapCanvas"></canvas>
 
-        <!-- ВКЛАДКА 2: КЛАНЫ (БАНДЫ) -->
-        <div id="tab-clans" class="tab-content">
-            <h2 style="color: #66fcf1; margin-bottom: 15px;">Управление Кланами (Бандами)</h2>
+<script>
+const canvas = document.getElementById('mapCanvas');
+const ctx = canvas.getContext('2d');
+const districtNameUI = document.getElementById('district-name');
 
-            <div id="my-clan-section" class="clan-section">
-                <!-- Контент для своего клана или форма для создания/вступления -->
-            </div>
-            
-            <div class="clan-section">
-                <h3>Все Кланы (Банды) Города</h3>
-                <ul id="all-clans-list" class="clan-list">
-                    <!-- Список всех кланов будет здесь -->
-                </ul>
-            </div>
-        </div>
+// Размеры всего игрового мира (карта больше экрана)
+const WORLD_WIDTH = 3000;
+const WORLD_HEIGHT = 2000;
 
-        <!-- ВКЛАДКА 3: ПРОФИЛЬ (КАСТОМИЗАЦИЯ И ЭКИПИРОВКА) -->
-        <div id="tab-profile" class="tab-content" style="padding: 15px;">
-            <h2 style="color: #66fcf1;">Профиль Персонажа</h2>
-            <p style="margin-top: 10px; color: #c5c6c7;">Здесь будет кастомизация и экипировка персонажа.</p>
-        </div>
+// Камера (смещение и зум)
+let camera = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2, zoom: 0.8 };
+let isDragging = false;
+let startX = 0, startY = 0;
+let selectedDistrict = null;
 
-    </div>
+// Данные о районах карты (координаты полигонов)
+const districts = [
+    {
+        id: 1, name: "Центральный Сити", color: "#8a2be2",
+        path: [{x: 1200, y: 800}, {x: 1800, y: 800}, {x: 1900, y: 1300}, {x: 1100, y: 1200}]
+    },
+    {
+        id: 2, name: "Промышленная Зона", color: "#ff4500",
+        path: [{x: 400, y: 400}, {x: 1100, y: 500}, {x: 1100, y: 1200}, {x: 300, y: 1000}]
+    },
+    {
+        id: 3, name: "Портовый Район", color: "#1e90ff",
+        path: [{x: 1800, y: 800}, {x: 2600, y: 600}, {x: 2700, y: 1400}, {x: 1900, y: 1300}]
+    },
+    {
+        id: 4, name: "Спальный Район (Север)", color: "#2ed573",
+        path: [{x: 1100, y: 500}, {x: 1800, y: 300}, {x: 2600, y: 600}, {x: 1800, y: 800}]
+    },
+    {
+        id: 5, name: "Заброшенные Пустоши", color: "#ffa500",
+        path: [{x: 300, y: 1000}, {x: 1100, y: 1200}, {x: 1900, y: 1300}, {x: 1500, y: 1800}, {x: 500, y: 1700}]
+    }
+];
 
-    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
-    <div id="navbar">
-        <button class="nav-btn active" onclick="switchTab('map', this)">
-            <span>🗺️</span> Карта
-        </button>
-        <button class="nav-btn" onclick="switchTab('clans', this)">
-            <span>🤝</span> Кланы
-        </button>
-        <button class="nav-btn" onclick="switchTab('profile', this)">
-            <span>👤</span> Профиль
-        </button>
-    </div>
+// Настройка размеров Canvas
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
 
-    <script>
-        // Инициализация Telegram WebApp
-        const tg = window.Telegram ? window.Telegram.WebApp : null;
-        if (tg) tg.expand();
+// --- ОРРИСОВКА (RENDER) ---
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // --- ДАННЫЕ ИГРОКА (СОХРАНЯЕМ В localStorage) ---
-        let player = JSON.parse(localStorage.getItem('playerData')) || {
-            id: (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : `guest_${Math.random().toString(36).substring(2, 9)}`,
-            name: (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.first_name : "Босс",
-            money: 100000,
-            power: 50,
-            clan: null // ID или название клана, в котором состоит игрок
-        };
+    ctx.save();
+    // Трансформация карты под камеру (смещение + масштабирование)
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.scale(camera.zoom, camera.zoom);
+    ctx.translate(-camera.x, -camera.y);
 
-        // --- ДАННЫЕ О КЛАНАХ (СОХРАНЯЕМ В localStorage) ---
-        let clans = JSON.parse(localStorage.getItem('clans')) || {}; // Все созданные кланы
+    // 1. Фон океана/воды
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-        // --- ДАННЫЕ ОБЪЕКТОВ НА КАРТЕ ---
-        const locations = [
-            { id: 1, name: "Морской Порт & Пирс", type: "sea", x: 80, y: 80, color: "#0077be", desc: "Причалы, корабли, контрабанда и море." },{ id: 2, name: "Старая Свалка", type: "junk", x: 15, y: 75, color: "#5a5a5a", desc: "Горы металлолома, заброшенные машины и тайники." },
-            { id: 3, name: "Центральный Банк", type: "city", x: 50, y: 45, color: "#ffd700", desc: "Финансовый центр Sol Garanza." },
-            { id: 4, name: "Даунтаун (Небоскребы)", type: "city", x: 50, y: 30, color: "#45a29e", desc: "Высотные здания, офисы мафии и элитная недвижимость." },
-            { id: 5, name: "Северное Гетто", type: "ghetto", x: 20, y: 20, color: "#e74c3c", desc: "Опасные улицы, где сила решает всё." },
-            { id: 6, name: "Аэропорт", type: "infra", x: 80, y: 20, color: "#f39c12", desc: "Взлетные полосы и ангары." }
-            // Добавь остальные 18 локаций сюда!
-        ];
+    // 2. Сетка на фоне
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.lineWidth = 2;
+    const gridSize = 100;
+    for (let x = 0; x < WORLD_WIDTH; x += gridSize) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD_HEIGHT); ctx.stroke();
+    }
+    for (let y = 0; y < WORLD_HEIGHT; y += gridSize) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD_WIDTH, y); ctx.stroke();
+    }
 
-        let selectedLocation = null;
+    // 3. Отрисовка районов
+    districts.forEach(district => {
+        const isSelected = selectedDistrict && selectedDistrict.id === district.id;
 
-        // --- ФУНКЦИИ СОХРАНЕНИЯ/ЗАГРУЗКИ ---
-        function saveGame() {
-            localStorage.setItem('playerData', JSON.stringify(player));
-            localStorage.setItem('clans', JSON.stringify(clans));
-            updateUI();
-        }
+        ctx.beginPath();
+        district.path.forEach((pt, index) => {
+            if (index === 0) ctx.moveTo(pt.x, pt.y);
+            else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.closePath();
 
-        // --- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
-        function updateUI() {
-            document.getElementById('player-name').innerText = player.name;
-            document.getElementById('player-money').innerText = player.money.toLocaleString();
-            document.getElementById('player-power').innerText = player.power;
-            document.getElementById('player-gang').innerText = `Банда: ${player.clan || 'Нет'}`;
-            // Дополнительные обновления UI по мере разработки
-        }
+        // Заполнение района
+        ctx.fillStyle = district.color + (isSelected ? '88' : '33'); // Прозрачность
+        ctx.fill();
 
-        // --- ФУНКЦИИ КЛАНОВ (БАНД) ---
-        const CLAN_CREATION_COST = 50000;
+        // Обводка (Свечение)
+        ctx.lineWidth = isSelected ? 8 : 4;
+        ctx.strokeStyle = district.color;
+        ctx.shadowColor = district.color;
+        ctx.shadowBlur = isSelected ? 20 : 5;
+        ctx.stroke();
+        ctx.shadowBlur = 0; // Сброс тени
 
-        function createClan() {
-            if (player.clan) {
-                alert('Вы уже состоите в клане!');
-                return;
-            }
-            if (player.money < CLAN_CREATION_COST) {
-                alert(`Недостаточно средств. Для создания клана нужно $${CLAN_CREATION_COST}!`);
-                return;
-            }
+        // Текст (Название района по центру)
+        const center = getPolygonCenter(district.path);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(district.name, center.x, center.y);
+    });
 
-            let clanName = prompt("Введите название нового клана (банды):");
-            if (clanName && clanName.trim().length >= 3) {
-                clanName = clanName.trim();
-                if (clans[clanName]) {
-                    alert('Клан с таким названием уже существует!');
-                    return;
-                }
+    // Граница карты
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 10;
+    ctx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-                player.money -= CLAN_CREATION_COST;
-                player.clan = clanName;
-                clans[clanName] = {
-                    name: clanName,
-                    leaderId: player.id,
-                    leaderName: player.name,
-                    rating: 0,
-                    members: [{ id: player.id, name: player.name, power: player.power }]
-                };
-                alert(`Клан "${clanName}" успешно создан!`);
-                saveGame();
-                renderClansTab();
-            } else {
-                alert('Название клана должно быть не менее 3 символов.');
-            }
-        }
+    ctx.restore();
 
-        function joinClan(clanName) {
-            if (player.clan) {
-                alert(`Вы уже состоите в клане "${player.clan}"!`);
-                return;
-            }
-            if (!clans[clanName]) {
-                alert('Клан не найден.');
-                return;
-            }
+    requestAnimationFrame(draw);
+}
 
-            player.clan = clanName;
-            clans[clanName].members.push({ id: player.id, name: player.name, power: player.power });
-            alert(`Вы вступили в клан "${clanName}"!`);
-            saveGame();
-            renderClansTab();
-        }
+// Вспомогательная функция: поиск центра района для текста
+function getPolygonCenter(points) {
+    let x = 0, y = 0;
+    points.forEach(p => { x += p.x; y += p.y; });
+    return { x: x / points.length, y: y / points.length };
+}
 
-        function leaveClan() {
-            if (!player.clan) {
-                alert('Вы не состоите ни в каком клане.');
-                return;
-            } 
+// Проверка: находится ли точка внутри района
+function isPointInPolygon(point, polygon) {
+    let x = point.x, y = point.y;
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        let xi = polygon[i].x, yi = polygon[i].y;
+        let xj = polygon[j].x, yj = polygon[j].y;
+        let intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
 
-            // Если лидер покинул, назначить нового лидера (первого в списке)
-                    currentClan.leaderId = currentClan.members[0].id;
-                    currentClan.leaderName = currentClan.members[0].name;
-                }
-                
-                player.clan = null;
-                alert('Вы покинули клан.');
-                saveGame();
-                renderClansTab();
-            }
-        }
+// Конвертация экранных координат в игровые
+function screenToWorld(screenX, screenY) {
+    return {
+        x: (screenX - canvas.width / 2) / camera.zoom + camera.x,
+        y: (screenY - canvas.height / 2) / camera.zoom + camera.y
+    };
+}
 
-        function renderClansTab() {
-            const myClanSection = document.getElementById('my-clan-section');
-            const allClansList = document.getElementById('all-clans-list');
-            
-            // Секция "Мой клан"
-            if (player.clan) {
-                const myClan = clans[player.clan];
-                myClanSection.innerHTML = `
-                    <h3>Ваш Клан: ${myClan.name}</h3>
-                    <p>Лидер: ${myClan.leaderName}</p>
-                    <p>Рейтинг: ${myClan.rating} 👊</p>
-                    <p>Участники (${myClan.members.length}):</p>
-                    <ul class="clan-list">
-                        ${myClan.members.map(member => `<li><span>${member.name} (⚡${member.power})</span></li>`).join('')}
-                    </ul>
-                    <button class="clan-btn" onclick="leaveClan()">Покинуть клан</button>
-                `;
-            } else {
-                myClanSection.innerHTML = `
-                    <h3>Вы не состоите в клане</h3>
-                    <button class="clan-btn" onclick="createClan()">Создать новый клан ($${CLAN_CREATION_COST})</button>
-                `;
-            }
+// --- УПРАВЛЕНИЕ (Touch / Mouse) ---
 
-            // Список всех кланов
-            allClansList.innerHTML = '';
-            const existingClans = Object.values(clans);
-            if (existingClans.length === 0) {
-                allClansList.innerHTML = '<li>Нет созданных кланов. Будь первым!</li>';
-            } else {
-                existingClans.forEach(clan => {
-                    allClansList.innerHTML += `
-                        <li>
-                            <span>${clan.name} (Лидер: ${clan.leaderName})</span>
-                            <span>⚡${clan.rating} 👊</span>
-                            ${!player.clan ? `<button onclick="joinClan('${clan.name}')">Вступить</button>` : ''}
-                        </li>
-                    `;
-                });
-            }
-        }
+// Начало нажатия
+function handleStart(e) {
+    isDragging = true;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    startX = clientX;
+    startY = clientY;
+}
 
+// Перетаскивание
+function handleMove(e) {
+    if (!isDragging) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-        // --- ОБЩИЕ ФУНКЦИИ ВКЛАДОК ---
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById('tab-' + tabId).classList.add('active');
-            btn.classList.add('active');
+    const dx = clientX - startX;
+    const dy = clientY - startY;
 
-            if (tabId === 'map') initMap();
-            if (tabId === 'clans') renderClansTab();
-            // if (tabId === 'profile') renderProfileTab(); // Будет добавлено позже
-        }
+    camera.x -= dx / camera.zoom;
+    camera.y -= dy / camera.zoom;
 
-        // --- ДВИЖОК ОТРИСОВКИ КАРТЫ (CANVAS) ---
-        function initMap() {
-            const canvas = document.getElementById('map-canvas');
-            const ctx = canvas.getContext('2d');
-            
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
+    // Ограничение камеры в пределах карты
+    camera.x = Math.max(0, Math.min(WORLD_WIDTH, camera.x));
+    camera.y = Math.max(0, Math.min(WORLD_HEIGHT, camera.y));
 
-            // Отрисовка фона карты (Суша + Море)
-            ctx.fillStyle = "#1e272e"; // Суша
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+    startX = clientX;
+    startY = clientY;
+}
 
-            // Океан / Море справа и снизу
-            ctx.fillStyle = "#0f3460";
-            ctx.beginPath();
-            ctx.moveTo(canvas.width * 0.6, canvas.height);
-            ctx.lineTo(canvas.width, canvas.height * 0.6);
-            ctx.lineTo(canvas.width, canvas.height);
-            ctx.fill();
+// Конец нажатия (Клик)
+function handleEnd(e) {
+    isDragging = false;
+}
 
-            // Отрисовка объектов/зданий на карте
-            locations.forEach(loc => {
-                const pixelX = (loc.x / 100) * canvas.width;
-                const pixelY = (loc.y / 100) * canvas.height;
+// Клик по району
+canvas.addEventListener('click', (e) => {
+    const worldPos = screenToWorld(e.clientX, e.clientY);
+    let clickedDistrict = null;
 
-                // Отрисовка зоны
-                ctx.beginPath();
-                ctx.arc(pixelX, pixelY, 18, 0
-            if (confirm(`Вы уверены, что хотите покинуть клан "${player.clan}"?`)) {
-                let currentClan = clans[player.clan];
-                currentClan.members = currentClan.members.filter(member => member.id !== player.id);
+    districts.forEach(district => {
+        if (isPointInPolygon(worldPos, district.path)) {
+            clickedDistrict = district;
+        }
+    });
 
-                if (currentClan.members.length === 0) {
-                    delete clans[player.clan]; // Удалить клан, если он опустел
-                } else if (currentClan.leaderId === player.id) {
+    if (clickedDistrict) {
+        selectedDistrict = clickedDistrict;
+        districtNameUI.innerText = clickedDistrict.name;
+        districtNameUI.style.color = clickedDistrict.color;
+    }
+});
 
-                }
+// Слушатели событий
+canvas.addEventListener('mousedown', handleStart);
+window.addEvent
+Listener('mousemove', handleMove);
+window.addEventListener('mouseup', handleEnd);
 
-                    , 2 * Math.PI);
-                ctx.fillStyle = loc.color;
-                ctx.fill();
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = "#ffffff";
-                ctx.stroke();
+canvas.addEventListener('touchstart', handleStart);
+window.addEventListener('touchmove', handleMove);
+window.addEventListener('touchend', handleEnd);
 
-                // Подпись локации
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "10px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText(loc.name, pixelX, pixelY + 30);
-            });
+// Масштабирование колесиком (Зум)
+canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const zoomFactor = 1.1;
+    if (e.deltaY < 0) camera.zoom = Math.min(camera.zoom * zoomFactor, 2.5); // Приближение
+    else camera.zoom = Math.max(camera.zoom / zoomFactor, 0.4); // Отдаление
+});
 
-            // Обработка клика по карте
-            canvas.onclick = function(e) {
-                const rect = canvas.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
-                const clickY = e.clientY - rect.top;
-
-                let found = false;
-                locations.forEach(loc => {
-                    const pixelX = (loc.x / 100) * canvas.width;
-                    const pixelY = (loc.y / 100) * canvas.height;
-
-                    const distance = Math.sqrt((clickX - pixelX) ** 2 + (clickY - pixelY) ** 2);
-                    if (distance <= 20) {
-                        showLocationModal(loc);
-                        found = true;
-                    }
-                });
-
-                if (!found) {
-                    document.getElementById('location-modal').style.display = 'none';
-                }
-            };
-        }
-
-        function showLocationModal(loc) {
-            selectedLocation = loc;
-            document.getElementById('loc-title').innerText = loc.name;
-            document.getElementById('loc-desc').innerText = loc.desc;
-            document.getElementById('location-modal').style.display = 'block';
-        }
-
-        function interactLocation() {
-            if (selectedLocation) {
-                alert(`Вы взаимодействуете с объектом: ${selectedLocation.name}`);
-            }
-        }
-
-        // --- ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ ---
-        window.onload = () => {
-            updateUI(); // Обновить все данные в UI
-            initMap();  // Инициализировать карту
-            switchTab('map', document.querySelector('#navbar .nav-btn')); // Активировать вкладку "Карта" по умолчанию
-        };
-        window.onresize = () => {
-            if (document.getElementById('tab-map').classList.contains('active')) {
-                initMap();
-            }
-        };
-    </script>
+// Запуск отрисовки
+draw();
+</script>
 </body>
 </html>
 ```
-
----
-
-                    
