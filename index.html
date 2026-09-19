@@ -1,0 +1,405 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sol Garanza — Telegram Mini App</title>
+    <!-- Подключение библиотеки Telegram WebApp -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f0f13;
+            --card-bg: #1a1a24;
+            --accent-gold: #ffd700;
+            --accent-blue: #00d2ff;
+            --text-color: #ffffff;
+            --text-dim: #aaaaaa;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 12px;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        /* Шапка профиля */
+        .profile-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #2a2a3a;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            margin-bottom: 12px;
+        }
+
+        .stats-container h2 {
+            margin: 0 0 6px 0;
+            font-size: 20px;
+            color: var(--text-color);
+        }
+
+        .stat-badge {
+            display: inline-block;
+            background: #252535;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .money { color: #2ecc71; }
+        .power { color: var(--accent-gold); }
+
+        /* Визуализация персонажа */
+        .character-viewport {
+            width: 120px;
+            height: 160px;
+            border-radius: 12px;
+            border: 2px solid var(--accent-gold);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            position: relative;
+            background: #252535;
+            transition: all 0.3s ease;
+        }
+
+        .skin-light { background: #ffe0bd !important; }
+        .skin-dark { background: #8d5524 !important; }
+
+        .layer-item {
+            font-size: 10px;
+            font-weight: bold;
+            padding: 3px 6px;
+            border-radius: 4px;
+            text-align: center;
+            width: 85%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        /* Цвета предметов */
+        .color-white { background: #ffffff; color: #000; }
+        .color-black { background: #222222; color: #fff; border: 1px solid #444; }
+        .color-gold { background: var(--accent-gold); color: #000; font-weight: 900; }
+
+        /* Переключатели вкладок */
+        .navigation {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            background: var(--card-bg);
+            color: var(--text-dim);
+            border: 1px solid #2a2a3a;
+            padding: 10px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .nav-btn.active {
+            background: var(--accent-gold);
+            color: #000;
+            border-color: var(--accent-gold);
+        }
+      /* Сетки контента */
+        .content-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 14px;
+            border: 1px solid #2a2a3a;
+        }
+
+        .shop-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .action-btn {
+            background: #252535;
+            color: var(--text-color);
+            border: 1px solid #3a3a4a;
+            padding: 10px 6px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: 0.1s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.96);
+            background: var(--accent-gold);
+            color: #000;
+        }
+
+        /* Карта территорий */
+        .territories-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .territory-card {
+            background: #222230;
+            border-radius: 8px;
+            padding: 8px;
+            border: 1px solid #333345;
+            font-size: 11px;
+        }
+
+        .territory-title {
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-bottom: 4px;
+        }
+
+        .capture-btn {
+            margin-top: 6px;
+            width: 100%;
+            background: var(--accent-gold);
+            border: none;
+            padding: 6px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ ПЕРСОНАЖА -->
+    <div class="profile-card">
+        <div class="stats-container">
+            <h2 id="player-name">Бандит</h2>
+            <div class="stat-badge money">💵 $<span id="balance">100000</span></div><br>
+            <div class="stat-badge power">👊 <span id="power-val">58</span> Силы</div>
+            <p style="margin: 8px 0 0 0; font-size: 11px; color: var(--text-dim);">
+                Кожа: <span id="skin-type-txt">Светлая</span> | Банда: <b id="gang-txt">Нет</b>
+            </p>
+        </div>
+
+        <!-- ОТОБРАЖЕНИЕ ПЕРСОНАЖА И НАДЕТЫХ ВЕЩЕЙ -->
+        <div id="character-avatar" class="character-viewport skin-light">
+            <div id="slot-hat" class="layer-item color-white">Белая кепка</div>
+            <div id="slot-hoodie" class="layer-item color-white">Белая кофта</div>
+            <div id="slot-pants" class="layer-item color-white">Белые штаны</div>
+            <div id="slot-shoes" class="layer-item color-white">Белые кеды</div>
+            <div id="slot-weapon" class="layer-item color-gold">«ГАДЮКА-9»</div>
+        </div>
+    </div>
+
+    <!-- МЕНЮ НАВИГАЦИИ -->
+    <div class="navigation">
+        <button id="tab-btn-shop" class="nav-btn active" onclick="switchTab('shop')">🛒 Магазин</button>
+        <button id="tab-btn-map" class="nav-btn" onclick="switchTab('map')">🗺️ Карта (24)</button>
+        <button id="tab-btn-settings" class="nav-btn" onclick="switchTab('settings')">⚙️ Кожа</button>
+    </div>
+
+    <!-- ВКЛАДКА 1: МАГАЗИН -->
+    <div id="view-shop" class="content-section">
+        <h3 style="margin-top:0; font-size:14px; color:var(--text-dim);">ЭКИПИРОВКА И АРСЕНАЛ</h3>
+        <div class="shop-grid">
+            <!-- Головные уборы -->
+            <button class="action-btn" onclick="buyItem('hat', 'Черная кепка', 500, 4, 'color-black')">
+                <span>⬛ Черная кепка</span>
+                <span style="color:#2ecc71;">+$500 | +4 👊</span>
+            </button>
+            <button class="action-btn" onclick="buyItem('hat', 'Золотая шляпа', 2500, 6, 'color-gold')">
+                <span>🟡 Золотая шляпа</span>
+                <span style="color:#2ecc71;">+$2,500 | +6 👊</span>
+            </button>
+
+            <!-- Верх -->
+            <but
+              ton class="action-btn" onclick="buyItem('hoodie', 'Черная кофта', 1000, 4, 'color-black')">
+                <span>⬛ Черная кофта</span>
+                <span style="color:#2ecc71;">+$1,000 | +4 👊</span>
+            </button>
+            <button class="action-btn" onclick="buyItem('hoodie', 'Золотая кофта', 5000, 6, 'color-gold')">
+                <span>🟡 Золотая кофта</span>
+                <span style="color:#2ecc71;">+$5,000 | +6 👊</span>
+            </button>
+
+            <!-- Низ -->
+            <button class="action-btn" onclick="buyItem('pants', 'Черные штаны', 750, 4, 'color-black')">
+                <span>⬛ Черные штаны</span>
+                <span style="color:#2ecc71;">+$750 | +4 👊</span>
+            </button>
+            <button class="action-btn" onclick="buyItem('pants', 'Золотые штаны', 3500, 6, 'color-gold')">
+                <span>🟡 Золотые штаны</span>
+                <span style="color:#2ecc71;">+$3,500 | +6 👊</span>
+            </button>
+
+            <!-- Оружие Пистолеты -->
+            <button class="action-btn" onclick="buyItem('weapon', 'НОЧНОЙ ЖНЕЦ', 7500, 150, 'color-black')">
+                <span>🔫 «НОЧНОЙ ЖНЕЦ»</span>
+                <span style="color:#2ecc71;">+$7,500 | +150 👊</span>
+            </button>
+            <button class="action-btn" onclick="buyItem('weapon', 'МИРОТВОРЕЦ УЛИЦ', 25000, 300, 'color-gold')">
+                <span>🔫 МИРОТВОРЕЦ</span>
+                <span style="color:#2ecc71;">+$25,000 | +300 👊</span>
+            </button>
+
+            <!-- Оружие Автоматы -->
+            <button class="action-btn" onclick="buyItem('weapon', 'АРМАГЕДДОН АК-12', 80000, 400, 'color-black')">
+                <span>💥 АК-12 «АРМАГЕДДОН»</span>
+                <span style="color:#2ecc71;">+$80,000 | +400 👊</span>
+            </button>
+            <button class="action-btn" onclick="buyItem('weapon', 'ПРИЗРАЧНЫЙ ВУЛЬФ', 200000, 500, 'color-gold')">
+                <span>💥 ПРИЗРАЧНЫЙ ВУЛЬФ</span>
+                <span style="color:#2ecc71;">+$200,000 | +500 👊</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ВКЛАДКА 2: КАРТА (24 КВАДРАТА) -->
+    <div id="view-map" class="content-section" style="display: none;">
+        <h3 style="margin-top:0; font-size:14px; color:var(--text-dim);">SOL GARANZA — 24 КВАДРАТА</h3>
+        <div class="territories-grid" id="territories-list"></div>
+    </div>
+
+    <!-- ВКЛАДКА 3: НАСТРОЙКИ ВНЕШНОСТИ -->
+    <div id="view-settings" class="content-section" style="display: none;">
+        <h3 style="margin-top:0; font-size:14px; color:var(--text-dim);">ЦВЕТ КОЖИ ПЕРСОНАЖА</h3>
+        <div style="display:flex; gap:10px;">
+            <button class="nav-btn active" onclick="setSkin('light')">🏻 Светлый</button>
+            <button class="nav-btn" onclick="setSkin('dark')">🏽 Темный</button>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp API
+        let tg = window.Telegram ? window.Telegram.WebApp : null;
+        if (tg) {
+            tg.expand();
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                document.getElementById('player-name').innerText = tg.initDataUnsafe.user.first_name;
+            }
+        }
+
+        // Данные игрока
+        let playerData = {
+            money: 100000,
+            power: 58,
+            skin: 'light'
+        };
+
+        // Список 24 территорий города Sol Garanza
+        const territoriesData = [
+            "Старая Свалка", "Центральный Вокзал", "Центральный Банк", "Тюремный комплекс",
+            "Северное Гетто", "Нью-Пирс", "Дамба", "Ночной Клуб", "Морской Порт",
+            "Аэропорт", "Парк", "Автосвалка", "Голливуд", "Старый Мост",
+            "Казино", "Заводской район", "Даунтаун", "Район Мафии", "Гольф-Клуб",
+            "Большая Дамба", "Южный пляж", "Промзона Блек-Шок", "Шахта", "Южное Гетто"
+        ];
+
+        // Покупка вещей
+        function buyItem(slotId, name, price, powerBoost, colorStyleClass) {
+            if (playerData.money >= price) {
+                playerData.money -= price;
+                playerData.power += powerBoost;
+
+          // Обновляем визуал элемента на персонаже
+                let targetSlot = document.getElementById('slot-' + slotId);
+                if (targetSlot) {
+                    targetSlot.innerText = name;
+                    targetSlot.className = 'layer-item ' + colorStyleClass;
+                }
+
+                updateUI();
+                alert('Успешно куплено: ' + name);
+            } else {
+                alert('Недостаточно денег на балансе!');
+            }
+        }
+
+        // Переключение цвета кожи
+        function setSkin(type) {
+            playerData.skin = type;
+            let avatar = document.getElementById('character-avatar');
+            let txt = document.getElementById('skin-type-txt');
+            
+            if (type === 'light') {
+                avatar.className = 'character-viewport skin-light';
+                txt.innerText = 'Светлая';
+            } else {
+                avatar.className = 'character-viewport skin-dark';
+                txt.innerText = 'Темная';
+            }
+        }
+
+        // Обновление интерфейса
+        function updateUI() {
+            document.getElementById('balance').innerText = playerData.money.toLocaleString();
+            document.getElementById('power-val').innerText = playerData.power;
+        }
+
+        // Переключение вкладок
+        function switchTab(tabName) {
+            document.getElementById('view-shop').style.display = tabName === 'shop' ? 'block' : 'none';
+            document.getElementById('view-map').style.display = tabName === 'map' ? 'block' : 'none';
+            document.getElementById('view-settings').style.display = tabName === 'settings' ? 'block' : 'none';
+
+            document.getElementById('tab-btn-shop').className = 'nav-btn ' + (tabName === 'shop' ? 'active' : '');
+            document.getElementById('tab-btn-map').className = 'nav-btn ' + (tabName === 'map' ? 'active' : '');
+            document.getElementById('tab-btn-settings').className = 'nav-btn ' + (tabName === 'settings' ? 'active' : '');
+        }
+
+        // Отрисовка карты 24 секторов
+        function renderMap() {
+            let container = document.getElementById('territories-list');
+            let html = '';
+            territoriesData.forEach((name, index) => {
+                html += `
+                    <div class="territory-card">
+                        <div class="territory-title">#${index + 1} ${name}</div>
+                        <div style="color:#aaa; font-size:10px;">Награда: 3000 👊/час</div>
+                        <button class="capture-btn" onclick="startCapture('${name}')">Захватить (60 мин)</button>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function startCapture(name) {
+            alert('Захват сектора "' + name + '" начат! Таймер: 60 минут в реальном времени.');
+        }
+
+        // Инициализация при запуске
+        renderMap();
+        updateUI();
+    </script>
+</body>
+</html>
+```
+
+---
