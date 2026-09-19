@@ -1,407 +1,94 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sol Garanza — Telegram Mini App</title>
-    <!-- Подключение библиотеки Telegram WebApp -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sol Garanza — Городские Кланы</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --bg-color: #0f0f13;
-            --card-bg: #1a1a24;
-            --accent-gold: #ffd700;
-            --accent-blue: #00d2ff;
-            --text-color: #ffffff;
-            --text-dim: #aaaaaa;
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { background: #0b0c10; color: #fff; font-family: 'Segoe UI', Roboto, sans-serif; overflow: hidden; }
+
+        /* Шапка игры */
+        #header {
+            height: 60px; background: #1f2833; display: flex; justify-content: space-between;
+            align-items: center; padding: 0 15px; border-bottom: 2px solid #45a29e;
         }
+        .user-info { font-size: 14px; font-weight: bold; color: #66fcf1; }
+        .user-info #player-name { font-size: 16px; margin-bottom: 2px; }
+        .user-info #player-gang { font-size: 11px; color: #c5c6c7; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 12px;
-            box-sizing: border-box;
-            user-select: none;
+        .stats { display: flex; gap: 15px; font-size: 13px; }
+        .stat-item { background: #0b0c10; padding: 5px 10px; border-radius: 5px; border: 1px solid #45a29e; }
+
+        /* Главный экран и вкладки */
+        #main-container { height: calc(100vh - 120px); position: relative; overflow: hidden; }
+        .tab-content { width: 100%; height: 100%; display: none; }
+        .tab-content.active { display: block; }
+
+        /* Нижнее меню навигации */
+        #navbar {
+            height: 60px; background: #1f2833; display: flex; justify-content: space-around;
+            align-items: center; border-top: 2px solid #45a29e;
         }
-
-        /* Шапка профиля */
-        .profile-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid #2a2a3a;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            margin-bottom: 12px;
-        }
-
-        .stats-container h2 {
-            margin: 0 0 6px 0;
-            font-size: 20px;
-            color: var(--text-color);
-        }
-
-        .stat-badge {
-            display: inline-block;
-            background: #252535;
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: bold;
-            margin-top: 4px;
-        }
-
-        .money { color: #2ecc71; }
-        .power { color: var(--accent-gold); }
-
-        /* Визуализация персонажа */
-        .character-viewport {
-            width: 120px;
-            height: 160px;
-            border-radius: 12px;
-            border: 2px solid var(--accent-gold);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            position: relative;
-            background: #252535;
-            transition: all 0.3s ease;
-        }
-
-        .skin-light { background: #ffe0bd !important; }
-        .skin-dark { background: #8d5524 !important; }
-
-        .layer-item {
-            font-size: 10px;
-            font-weight: bold;
-            padding: 3px 6px;
-            border-radius: 4px;
-            text-align: center;
-            width: 85%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-
-        /* Цвета предметов */
-        .color-white { background: #ffffff; color: #000; }
-        .color-black { background: #222222; color: #fff; border: 1px solid #444; }
-        .color-gold { background: var(--accent-gold); color: #000; font-weight: 900; }
-
-        /* Переключатели вкладок */
-        .navigation {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-
         .nav-btn {
-            flex: 1;
-            background: var(--card-bg);
-            color: var(--text-dim);
-            border: 1px solid #2a2a3a;
-            padding: 10px;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 13px;
-            cursor: pointer;
-            transition: 0.2s;
+            background: none; border: none; color: #c5c6c7; font-size: 11px;
+            display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
         }
+        .nav-btn.active { color: #66fcf1; font-weight: bold; }
+        .nav-btn icon { font-size: 18px; }
 
-        .nav-btn.active {
-            background: var(--accent-gold);
-            color: #000;
-            border-color: var(--accent-gold);
+        /* Вкладка: Карта Города (Canvas) */
+        #map-canvas { width: 100%; height: 100%; background: #121212; display: block; }
+        #location-modal {
+            position: absolute; bottom: 10px; left: 5%; width: 90%; background: rgba(31, 40, 51, 0.95);
+            border: 2px solid #66fcf1; border-radius: 10px; padding: 15px; display: none;
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.3); z-index: 100;
         }
-      /* Сетки контента */
-        .content-section {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 14px;
-            border: 1px solid #2a2a3a;
-        }
-
-        .shop-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
+        #location-modal h3 { color: #66fcf1; margin-bottom: 5px; }
+        #location-modal p { font-size: 12px; color: #c5c6c7; margin-bottom: 10px; }
         .action-btn {
-            background: #252535;
-            color: var(--text-color);
-            border: 1px solid #3a3a4a;
-            padding: 10px 6px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            transition: 0.1s;
+            background: #66fcf1; color: #0b0c10; border: none; padding: 8px 15px;
+            font-weight: bold; border-radius: 5px; width: 100%; cursor: pointer;
         }
 
-        .action-btn:active {
-            transform: scale(0.96);
-            background: var(--accent-gold);
-            color: #000;
+        /* Вкладка: Кланы (Банды) */
+        #tab-clans { padding: 15px; overflow-y: auto; }
+        .clan-section { background: #1f2833; padding: 15px; border-radius: 10px; margin-bottom: 15px; border: 1px solid #45a29e; }
+        .clan-section h3 { color: #66fcf1; margin-bottom: 10px; }
+        .clan-input {
+            width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 5px;
+            border: 1px solid #45a29e; background: #0b0c10; color: #fff;
         }
-
-        /* Карта территорий */
-        .territories-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            max-height: 380px;
-            overflow-y: auto;
-            padding-right: 4px;
+        .clan-btn {
+            background: #66fcf1; color: #0b0c10; border: none; padding: 10px;
+            font-weight: bold; border-radius: 5px; width: 100%; cursor: pointer;
+            margin-top: 5px;
         }
-
-        .territory-card {
-            background: #222230;
-            border-radius: 8px;
-            padding: 8px;
-            border: 1px solid #333345;
-            font-size: 11px;
+        .clan-list { list-style: none; padding: 0; }
+        .clan-list li {
+            background: #0b0c10; padding: 10px; border-radius: 5px; margin-bottom: 5px;
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid #45a29e;
         }
-
-        .territory-title {
-            font-weight: bold;
-            color: var(--accent-blue);
-            margin-bottom: 4px;
-        }
-
-        .capture-btn {
-            margin-top: 6px;
-            width: 100%;
-            background: var(--accent-gold);
-            border: none;
-            padding: 6px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 10px;
-            cursor: pointer;
+        .clan-list li span { font-size: 13px; }
+        .clan-list li button {
+            background: #45a29e; color: #0b0c10; border: none; padding: 5px 10px;
+            border-radius: 3px; font-size: 11px; cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <!-- ВЕРХНЯЯ ПАНЕЛЬ ПЕРСОНАЖА -->
-    <div class="profile-card">
-        <div class="stats-container">
-            <h2 id="player-name">Бандит</h2>
-            <div class="stat-badge money">💵 $<span id="balance">100000</span></div><br>
-            <div class="stat-badge power">👊 <span id="power-val">58</span> Силы</div>
-            <p style="margin: 8px 0 0 0; font-size: 11px; color: var(--text-dim);">
-                Кожа: <span id="skin-type-txt">Светлая</span> | Банда: <b id="gang-txt">Нет</b>
-            </p>
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+    <div id="header">
+        <div class="user-info">
+            <div id="player-name">Игрок</div>
+            <div id="player-gang">Банда: Нет</div>
         </div>
-
-        <!-- ОТОБРАЖЕНИЕ ПЕРСОНАЖА И НАДЕТЫХ ВЕЩЕЙ -->
-        <div id="character-avatar" class="character-viewport skin-light">
-            <div id="slot-hat" class="layer-item color-white">Белая кепка</div>
-            <div id="slot-hoodie" class="layer-item color-white">Белая кофта</div>
-            <div id="slot-pants" class="layer-item color-white">Белые штаны</div>
-            <div id="slot-shoes" class="layer-item color-white">Белые кеды</div>
-            <div id="slot-weapon" class="layer-item color-gold">«ГАДЮКА-9»</div>
-        </div>
-    </div>
-
-    <!-- МЕНЮ НАВИГАЦИИ -->
-    <div class="navigation">
-        <button id="tab-btn-shop" class="nav-btn active" onclick="switchTab('shop')">🛒 Магазин</button>
-        <button id="tab-btn-map" class="nav-btn" onclick="switchTab('map')">🗺️ Карта (24)</button>
-        <button id="tab-btn-settings" class="nav-btn" onclick="switchTab('settings')">⚙️ Кожа</button>
-    </div>
-
-    <!-- ВКЛАДКА 1: МАГАЗИН -->
-    <div id="view-shop" class="content-section">
-        <h3 style="margin-top:0; font-size:14px; color:var(--text-dim);">ЭКИПИРОВКА И АРСЕНАЛ</h3>
-        <div class="shop-grid">
-            <!-- Головные уборы -->
-            <button class="action-btn" onclick="buyItem('hat', 'Черная кепка', 500, 4, 'color-black')">
-                <span>⬛ Черная кепка</span>
-                <span style="color:#2ecc71;">+$500 | +4 👊</span>
-            </button>
-            <button class="action-btn" onclick="buyItem('hat', 'Золотая шляпа', 2500, 6, 'color-gold')">
-                <span>🟡 Золотая шляпа</span>
-                <span style="color:#2ecc71;">+$2,500 | +6 👊</span>
-            </button>
-
-            <!-- Верх -->
-            <but
-              ton class="action-btn" onclick="buyItem('hoodie', 'Черная кофта', 1000, 4, 'color-black')">
-                <span>⬛ Черная кофта</span>
-                <span style="color:#2ecc71;">+$1,000 | +4 👊</span>
-            </button>
-            <button class="action-btn" onclick="buyItem('hoodie', 'Золотая кофта', 5000, 6, 'color-gold')">
-                <span>🟡 Золотая кофта</span>
-                <span style="color:#2ecc71;">+$5,000 | +6 👊</span>
-            </button>
-
-            <!-- Низ -->
-            <button class="action-btn" onclick="buyItem('pants', 'Черные штаны', 750, 4, 'color-black')">
-                <span>⬛ Черные штаны</span>
-                <span style="color:#2ecc71;">+$750 | +4 👊</span>
-            </button>
-            <button class="action-btn" onclick="buyItem('pants', 'Золотые штаны', 3500, 6, 'color-gold')">
-                <span>🟡 Золотые штаны</span>
-                <span style="color:#2ecc71;">+$3,500 | +6 👊</span>
-            </button>
-
-            <!-- Оружие Пистолеты -->
-            <button class="action-btn" onclick="buyItem('weapon', 'НОЧНОЙ ЖНЕЦ', 7500, 150, 'color-black')">
-                <span>🔫 «НОЧНОЙ ЖНЕЦ»</span>
-                <span style="color:#2ecc71;">+$7,500 | +150 👊</span>
-            </button>
-            <button class="action-btn" onclick="buyItem('weapon', 'МИРОТВОРЕЦ УЛИЦ', 25000, 300, 'color-gold')">
-                <span>🔫 МИРОТВОРЕЦ</span>
-                <span style="color:#2ecc71;">+$25,000 | +300 👊</span>
-            </button>
-
-            <!-- Оружие Автоматы -->
-            <button class="action-btn" onclick="buyItem('weapon', 'АРМАГЕДДОН АК-12', 80000, 400, 'color-black')">
-                <span>💥 АК-12 «АРМАГЕДДОН»</span>
-                <span style="color:#2ecc71;">+$80,000 | +400 👊</span>
-            </button>
-            <button class="action-btn" onclick="buyItem('weapon', 'ПРИЗРАЧНЫЙ ВУЛЬФ', 200000, 500, 'color-gold')">
-                <span>💥 ПРИЗРАЧНЫЙ ВУЛЬФ</span>
-                <span style="color:#2ecc71;">+$200,000 | +500 👊</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- ВКЛАДКА 2: КАРТА (24 КВАДРАТА) -->
-    <div id="view-map" class="content-section" style="display: none;">
-        <h3 style="margin-top:0; font-size:14px; color:var(--text-dim);">SOL GARANZA — 24 КВАДРАТА</h3>
-        <div class="territories-grid" id="territories-list"></div>
-    </div>
-
-    <!-- ВКЛАДКА 3: НАСТРОЙКИ ВНЕШНОСТИ -->
-    <div id="view-settings" class="content-section" style="display: none;">
-        <h3 style="margin-top:0; font-size:14px; color:var(--text-dim);">ЦВЕТ КОЖИ ПЕРСОНАЖА</h3>
-        <div style="display:flex; gap:10px;">
-            <button class="nav-btn active" onclick="setSkin('light')">🏻 Светлый</button>
-            <button class="nav-btn" onclick="setSkin('dark')">🏽 Темный</button>
-        </div>
-    </div>
-
-    <script>
-        // Инициализация Telegram WebApp API
-        let tg = window.Telegram ? window.Telegram.WebApp : null;
-        if (tg) {
-            tg.expand();
-            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                document.getElementById('player-name').innerText = tg.initDataUnsafe.user.first_name;
-            }
-        }
-
-        // Данные игрока
-        let playerData = {
-            money: 100000,
-            power: 58,
-            skin: 'light'
-        };
-
-        // Список 24 территорий города Sol Garanza
-        const territoriesData = [
-            "Старая Свалка", "Центральный Вокзал", "Центральный Банк", "Тюремный комплекс",
-            "Северное Гетто", "Нью-Пирс", "Дамба", "Ночной Клуб", "Морской Порт",
-            "Аэропорт", "Парк", "Автосвалка", "Голливуд", "Старый Мост",
-            "Казино", "Заводской район", "Даунтаун", "Район Мафии", "Гольф-Клуб",
-            "Большая Дамба", "Южный пляж", "Промзона Блек-Шок", "Шахта", "Южное Гетто"
-        ];
-
-        // Покупка вещей
-        function buyItem(slotId, name, price, powerBoost, colorStyleClass) {
-            if (playerData.money >= price) {
-                playerData.money -= price;
-                playerData.power += powerBoost;
-
-          // Обновляем визуал элемента на персонаже
-                let targetSlot = document.getElementById('slot-' + slotId);
-                if (targetSlot) {
-                    targetSlot.innerText = name;
-                    targetSlot.className = 'layer-item ' + colorStyleClass;
-                }
-
-                updateUI();
-                alert('Успешно куплено: ' + name);
-            } else {
-                alert('Недостаточно денег на балансе!');
-            }
-        }
-
-        // Переключение цвета кожи
-        function setSkin(type) {
-            playerData.skin = type;
-            let avatar = document.getElementById('character-avatar');
-            let txt = document.getElementById('skin-type-txt');
-            
-            if (type === 'light') {
-                avatar.className = 'character-viewport skin-light';
-                txt.innerText = 'Светлая';
-            } else {
-                avatar.className = 'character-viewport skin-dark';
-                txt.innerText = 'Темная';
-            }
-        }
-
-        // Обновление интерфейса
-        function updateUI() {
-            document.getElementById('balance').innerText = playerData.money.toLocaleString();
-            document.getElementById('power-val').innerText = playerData.power;
-        }
-
-        // Переключение вкладок
-        function switchTab(tabName) {
-            document.getElementById('view-shop').style.display = tabName === 'shop' ? 'block' : 'none';
-            document.getElementById('view-map').style.display = tabName === 'map' ? 'block' : 'none';
-            document.getElementById('view-settings').style.display = tabName === 'settings' ? 'block' : 'none';
-
-            document.getElementById('tab-btn-shop').className = 'nav-btn ' + (tabName === 'shop' ? 'active' : '');
-            document.getElementById('tab-btn-map').className = 'nav-btn ' + (tabName === 'map' ? 'active' : '');
-            document.getElementById('tab-btn-settings').className = 'nav-btn ' + (tabName === 'settings' ? 'active' : '');
-        }
-
-        // Отрисовка карты 24 секторов
-        function renderMap() {
-            let container = document.getElementById('territories-list');
-            let html = '';
-            territoriesData.forEach((name, index) => {
-                html += `
-                    <div class="territory-card">
-                        <div class="territory-title">#${index + 1} ${name}</div>
-                        <div style="color:#aaa; font-size:10px;">Награда: 3000 👊/час</div>
-                        <button class="capture-btn" onclick="startCapture('${name}')">Захватить (60 мин)</button>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
-        function startCapture(name) {
-            alert('Захват сектора "' + name + '" начат! Таймер: 60 минут в реальном времени.');
-        }
-
-        // Инициализация при запуске
-        renderMap();
-        updateUI();
-    </script>
-</body>
-</html>
-```
-
----tat-item">⚡ <span id="player-power">50</span></div>
+        <div class="stats">
+            <div class="stat-item">💵 $<span id="player-money">100,000</span></div>
+            <div class="stat-item">⚡ <span id="player-power">50</span></div>
         </div>
     </div>
 
@@ -420,15 +107,25 @@
             </div>
         </div>
 
-        <!-- ВКЛАДКА 2: ГОРОДСКИЕ ОБЪЕКТЫ (СПИСОК) -->
-        <div id="tab-buildings" class="tab-content" style="padding: 15px; overflow-y: auto;">
-            <h2 style="color: #66fcf1; margin-bottom: 10px;">Объекты Sol Garanza</h2>
-            <div id="buildings-list"></div>
+        <!-- ВКЛАДКА 2: КЛАНЫ (БАНДЫ) -->
+        <div id="tab-clans" class="tab-content">
+            <h2 style="color: #66fcf1; margin-bottom: 15px;">Управление Кланами (Бандами)</h2>
+
+            <div id="my-clan-section" class="clan-section">
+                <!-- Контент для своего клана или форма для создания/вступления -->
+            </div>
+            
+            <div class="clan-section">
+                <h3>Все Кланы (Банды) Города</h3>
+                <ul id="all-clans-list" class="clan-list">
+                    <!-- Список всех кланов будет здесь -->
+                </ul>
+            </div>
         </div>
 
-        <!-- ВКЛАДКА 3: ПРОФИЛЬ -->
+        <!-- ВКЛАДКА 3: ПРОФИЛЬ (КАСТОМИЗАЦИЯ И ЭКИПИРОВКА) -->
         <div id="tab-profile" class="tab-content" style="padding: 15px;">
-            <h2 style="color: #66fcf1;">Профиль Игрока</h2>
+            <h2 style="color: #66fcf1;">Профиль Персонажа</h2>
             <p style="margin-top: 10px; color: #c5c6c7;">Здесь будет кастомизация и экипировка персонажа.</p>
         </div>
 
@@ -437,13 +134,13 @@
     <!-- НИЖНЯЯ НАВИГАЦИЯ -->
     <div id="navbar">
         <button class="nav-btn active" onclick="switchTab('map', this)">
-            <span>🗺️</span> Карта Города
+            <span>🗺️</span> Карта
         </button>
-        <button class="nav-btn" onclick="switchTab('buildings', this)">
-            <span>🏢</span> Объекты
+        <button class="nav-btn" onclick="switchTab('clans', this)">
+            <span>🤝</span> Кланы
         </button>
         <button class="nav-btn" onclick="switchTab('profile', this)">
-            <span>👤</span> Персонаж
+            <span>👤</span> Профиль
         </button>
     </div>
 
@@ -452,28 +149,163 @@
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) tg.expand();
 
-        // Данные игрока
-        const player = {
+        // --- ДАННЫЕ ИГРОКА (СОХРАНЯЕМ В localStorage) ---
+        let player = JSON.parse(localStorage.getItem('playerData')) || {
+            id: (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id : `guest_${Math.random().toString(36).substring(2, 9)}`,
             name: (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.first_name : "Босс",
             money: 100000,
-            power: 50
+            power: 50,
+            clan: null // ID или название клана, в котором состоит игрок
         };
 
-        document.getElementById('player-name').innerText = player.name;
+        // --- ДАННЫЕ О КЛАНАХ (СОХРАНЯЕМ В localStorage) ---
+        let clans = JSON.parse(localStorage.getItem('clans')) || {}; // Все созданные кланы
 
-        // Список объектов на карте (Координаты X, Y, тип и описание)
+        // --- ДАННЫЕ ОБЪЕКТОВ НА КАРТЕ ---
         const locations = [
-            { id: 1, name: "Морской Порт & Пирс", type: "sea", x: 80, y: 80, color: "#0077be", desc: "Причалы, корабли, контрабанда и море." },
-            { id: 2, name: "Старая Свалка", type: "junk", x: 15, y: 75, color: "#5a5a5a", desc: "Горы металлолома, заброшенные машины и тайники." },
+            { id: 1, name: "Морской Порт & Пирс", type: "sea", x: 80, y: 80, color: "#0077be", desc: "Причалы, корабли, контрабанда и море." },{ id: 2, name: "Старая Свалка", type: "junk", x: 15, y: 75, color: "#5a5a5a", desc: "Горы металлолома, заброшенные машины и тайники." },
             { id: 3, name: "Центральный Банк", type: "city", x: 50, y: 45, color: "#ffd700", desc: "Финансовый центр Sol Garanza." },
             { id: 4, name: "Даунтаун (Небоскребы)", type: "city", x: 50, y: 30, color: "#45a29e", desc: "Высотные здания, офисы мафии и элитная недвижимость." },
             { id: 5, name: "Северное Гетто", type: "ghetto", x: 20, y: 20, color: "#e74c3c", desc: "Опасные улицы, где сила решает всё." },
             { id: 6, name: "Аэропорт", type: "infra", x: 80, y: 20, color: "#f39c12", desc: "Взлетные полосы и ангары." }
+            // Добавь остальные 18 локаций сюда!
         ];
 
         let selectedLocation = null;
 
-        // Переключение вкладок
+        // --- ФУНКЦИИ СОХРАНЕНИЯ/ЗАГРУЗКИ ---
+        function saveGame() {
+            localStorage.setItem('playerData', JSON.stringify(player));
+            localStorage.setItem('clans', JSON.stringify(clans));
+            updateUI();
+        }
+
+        // --- ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ---
+        function updateUI() {
+            document.getElementById('player-name').innerText = player.name;
+            document.getElementById('player-money').innerText = player.money.toLocaleString();
+            document.getElementById('player-power').innerText = player.power;
+            document.getElementById('player-gang').innerText = `Банда: ${player.clan || 'Нет'}`;
+            // Дополнительные обновления UI по мере разработки
+        }
+
+        // --- ФУНКЦИИ КЛАНОВ (БАНД) ---
+        const CLAN_CREATION_COST = 50000;
+
+        function createClan() {
+            if (player.clan) {
+                alert('Вы уже состоите в клане!');
+                return;
+            }
+            if (player.money < CLAN_CREATION_COST) {
+                alert(`Недостаточно средств. Для создания клана нужно $${CLAN_CREATION_COST}!`);
+                return;
+            }
+
+            let clanName = prompt("Введите название нового клана (банды):");
+            if (clanName && clanName.trim().length >= 3) {
+                clanName = clanName.trim();
+                if (clans[clanName]) {
+                    alert('Клан с таким названием уже существует!');
+                    return;
+                }
+
+                player.money -= CLAN_CREATION_COST;
+                player.clan = clanName;
+                clans[clanName] = {
+                    name: clanName,
+                    leaderId: player.id,
+                    leaderName: player.name,
+                    rating: 0,
+                    members: [{ id: player.id, name: player.name, power: player.power }]
+                };
+                alert(`Клан "${clanName}" успешно создан!`);
+                saveGame();
+                renderClansTab();
+            } else {
+                alert('Название клана должно быть не менее 3 символов.');
+            }
+        }
+
+        function joinClan(clanName) {
+            if (player.clan) {
+                alert(`Вы уже состоите в клане "${player.clan}"!`);
+                return;
+            }
+            if (!clans[clanName]) {
+                alert('Клан не найден.');
+                return;
+            }
+
+            player.clan = clanName;
+            clans[clanName].members.push({ id: player.id, name: player.name, power: player.power });
+            alert(`Вы вступили в клан "${clanName}"!`);
+            saveGame();
+            renderClansTab();
+        }
+
+        function leaveClan() {
+            if (!player.clan) {
+                alert('Вы не состоите ни в каком клане.');
+                return;
+            } 
+
+            // Если лидер покинул, назначить нового лидера (первого в списке)
+                    currentClan.leaderId = currentClan.members[0].id;
+                    currentClan.leaderName = currentClan.members[0].name;
+                }
+                
+                player.clan = null;
+                alert('Вы покинули клан.');
+                saveGame();
+                renderClansTab();
+            }
+        }
+
+        function renderClansTab() {
+            const myClanSection = document.getElementById('my-clan-section');
+            const allClansList = document.getElementById('all-clans-list');
+            
+            // Секция "Мой клан"
+            if (player.clan) {
+                const myClan = clans[player.clan];
+                myClanSection.innerHTML = `
+                    <h3>Ваш Клан: ${myClan.name}</h3>
+                    <p>Лидер: ${myClan.leaderName}</p>
+                    <p>Рейтинг: ${myClan.rating} 👊</p>
+                    <p>Участники (${myClan.members.length}):</p>
+                    <ul class="clan-list">
+                        ${myClan.members.map(member => `<li><span>${member.name} (⚡${member.power})</span></li>`).join('')}
+                    </ul>
+                    <button class="clan-btn" onclick="leaveClan()">Покинуть клан</button>
+                `;
+            } else {
+                myClanSection.innerHTML = `
+                    <h3>Вы не состоите в клане</h3>
+                    <button class="clan-btn" onclick="createClan()">Создать новый клан ($${CLAN_CREATION_COST})</button>
+                `;
+            }
+
+            // Список всех кланов
+            allClansList.innerHTML = '';
+            const existingClans = Object.values(clans);
+            if (existingClans.length === 0) {
+                allClansList.innerHTML = '<li>Нет созданных кланов. Будь первым!</li>';
+            } else {
+                existingClans.forEach(clan => {
+                    allClansList.innerHTML += `
+                        <li>
+                            <span>${clan.name} (Лидер: ${clan.leaderName})</span>
+                            <span>⚡${clan.rating} 👊</span>
+                            ${!player.clan ? `<button onclick="joinClan('${clan.name}')">Вступить</button>` : ''}
+                        </li>
+                    `;
+                });
+            }
+        }
+
+
+        // --- ОБЩИЕ ФУНКЦИИ ВКЛАДОК ---
         function switchTab(tabId, btn) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
@@ -482,7 +314,8 @@
             btn.classList.add('active');
 
             if (tabId === 'map') initMap();
-            if (tabId === 'buildings') renderBuildingsList();
+            if (tabId === 'clans') renderClansTab();
+            // if (tabId === 'profile') renderProfileTab(); // Будет добавлено позже
         }
 
         // --- ДВИЖОК ОТРИСОВКИ КАРТЫ (CANVAS) ---
@@ -512,7 +345,18 @@
 
                 // Отрисовка зоны
                 ctx.beginPath();
-                ctx.arc(pixelX, pixelY, 18, 0, 2 * Math.PI);
+                ctx.arc(pixelX, pixelY, 18, 0
+            if (confirm(`Вы уверены, что хотите покинуть клан "${player.clan}"?`)) {
+                let currentClan = clans[player.clan];
+                currentClan.members = currentClan.members.filter(member => member.id !== player.id);
+
+                if (currentClan.members.length === 0) {
+                    delete clans[player.clan]; // Удалить клан, если он опустел
+                } else if (currentClan.leaderId === player.id) {
+
+                }
+
+                    , 2 * Math.PI);
                 ctx.fillStyle = loc.color;
                 ctx.fill();
                 ctx.lineWidth = 3;
@@ -563,22 +407,11 @@
             }
         }
 
-        function renderBuildingsList() {
-            const list = document.getElementById('buildings-list');
-            list.innerHTML = '';
-            locations.forEach(loc => {
-                list.innerHTML += `
-                    <div style="background: #1f2833; padding: 12px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid ${loc.color};">
-                        <h4 style="color: #66fcf1;">${loc.name}</h4>
-                        <p style="font-size: 12px; color: #c5c6c7; margin-top: 4px;">${loc.desc}</p>
-                    </div>
-                `;
-            });
-        }
-
-        // Автозапуск при загрузке
+        // --- ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ ---
         window.onload = () => {
-            initMap();
+            updateUI(); // Обновить все данные в UI
+            initMap();  // Инициализировать карту
+            switchTab('map', document.querySelector('#navbar .nav-btn')); // Активировать вкладку "Карта" по умолчанию
         };
         window.onresize = () => {
             if (document.getElementById('tab-map').classList.contains('active')) {
@@ -591,4 +424,5 @@
 ```
 
 ---
-                
+
+                    
